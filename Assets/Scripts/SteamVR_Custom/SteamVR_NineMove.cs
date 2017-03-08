@@ -36,10 +36,10 @@ public class SteamVR_NineMove : MonoBehaviour {
 
             dist = (steamCtlMain.transform.position - steamCtlAlt.transform.position).magnitude;
             delta = dist - prevDist;
-            if (Mathf.Abs(delta) > deltaThreshold) {
-                target.transform.localScale -= Vector3.one * Time.deltaTime * Mathf.Sign(delta) * scaleDelta;
-
-                Vector3 deltaPosMain = steamCtlMain.transform.position - prevPosMain;
+            //if (Mathf.Abs(delta) > Mathf.Abs(deltaThreshold * target.transform.localScale.x)) {
+            target.transform.localScale -= Vector3.one * Time.deltaTime * Mathf.Sign(delta) * scaleDelta;
+            
+            Vector3 deltaPosMain = steamCtlMain.transform.position - prevPosMain;
                 Vector3 deltaPosAlt = steamCtlAlt.transform.position - prevPosAlt;
                 Vector3 deltaPosAvg = (deltaPosMain + deltaPosAlt) / 2f;
                 deltaPosAvg = new Vector3(deltaPosAvg.x, -deltaPosAvg.y, deltaPosAvg.z);
@@ -51,7 +51,7 @@ public class SteamVR_NineMove : MonoBehaviour {
                 angle = (getAngle(steamCtlMain.transform, centerPos) + getAngle(steamCtlAlt.transform, centerPos)) / 2f;
                 angleDelta = angle - prevAngle;
                 target.transform.Rotate(0f, -angleDelta, 0f);
-            }
+            //}
         } else {
             centerRen.enabled = false;
         }
