@@ -28,9 +28,8 @@ public class SteamVR_NewController : MonoBehaviour {
     [HideInInspector] public Vector3 startPos = Vector3.zero;
     [HideInInspector] public Vector3 endPos = Vector3.zero;
     [HideInInspector] public float triggerVal;
-
-    private SteamVR_TrackedObject trackedObj;
-    private SteamVR_Controller.Device device;
+    [HideInInspector] public SteamVR_Controller.Device device;
+    [HideInInspector] public SteamVR_TrackedObject trackedObj;
 
     private float touchPadLimit = 0.7f;
 
@@ -132,13 +131,13 @@ public class SteamVR_NewController : MonoBehaviour {
     float defaultVibrationVal = 2f;
 
     public void vibrateController() {
-        int ms = (int) defaultVibrationVal * 1000;
-        device.TriggerHapticPulse((ushort) ms, Valve.VR.EVRButtonId.k_EButton_SteamVR_Touchpad);
+        int ms = (int)defaultVibrationVal * 1000;
+        device.TriggerHapticPulse((ushort)ms, Valve.VR.EVRButtonId.k_EButton_SteamVR_Touchpad);
     }
 
     public void vibrateController(float val) {
-        int ms = (int) val * 1000;
-        device.TriggerHapticPulse((ushort) ms, Valve.VR.EVRButtonId.k_EButton_SteamVR_Touchpad);
+        int ms = (int)val * 1000;
+        device.TriggerHapticPulse((ushort)ms, Valve.VR.EVRButtonId.k_EButton_SteamVR_Touchpad);
     }
 
 }

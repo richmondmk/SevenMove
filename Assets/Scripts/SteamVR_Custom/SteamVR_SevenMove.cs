@@ -7,9 +7,10 @@ public class SteamVR_SevenMove : MonoBehaviour {
 
     public SteamVR_NewController steamCtlMain;
     public SteamVR_NewController steamCtlAlt;
-    public GameObject target;
-    public GameObject center;
+    public Transform target;
+    public GameObject centerObj;
     public float minScale = 0.1f;
+    public float maxScale = 100f;
     public float moveSpeed = 4f;
     public enum TrackMode { AVG, MAIN, ALT};
     public TrackMode trackMode = TrackMode.AVG;
@@ -28,10 +29,13 @@ public class SteamVR_SevenMove : MonoBehaviour {
 
     private float deltaThreshold = 0.01f;
     private float scaleDelta = 5f;
+    private bool useCenterObj = false;
 
     private void Awake() {
-        centerRen = center.GetComponent<Renderer>();
-        if (centerRen != null) centerRen.enabled = false;
+        if (centerObj == null) return;
+        useCenterObj = true;
+        centerRen = centerObj.GetComponent<Renderer>();
+        centerRen.enabled = false;
     }
 
     private void Update() {
@@ -44,7 +48,7 @@ public class SteamVR_SevenMove : MonoBehaviour {
         deltaPosAvg = new Vector3(deltaPosAvg.x, -deltaPosAvg.y, deltaPosAvg.z);
 
         centerPos = (steamCtlMain.transform.position + steamCtlAlt.transform.position) / 2f;
-        center.transform.position = centerPos;
+        if (useCenterObj) centerObj.transform.position = centerPos;
 
         if (trackMode == TrackMode.AVG) {
             angle = (getAngle(steamCtlMain.transform, centerPos) + getAngle(steamCtlAlt.transform, centerPos)) / 2f;
@@ -56,21 +60,13 @@ public class SteamVR_SevenMove : MonoBehaviour {
         angleDelta = angle - prevAngle;
 
         if (steamCtlMain.gripped && steamCtlAlt.gripped) {
-            if (centerRen != null) centerRen.enabled = true;
+            if (useCenterObj) centerRen.enabled = true;
 
-            if (Mathf.Abs(delta) > Mathf.Abs(deltaThreshold * target.transform.localScale.x)) {
-                target.transform.localScale -= Vector3.one * Time.deltaTime * Mathf.Sign(delta) * scaleDelta;
-            }
-            if (target.transform.localScale.x < minScale) target.transform.localScale = new Vector3(minScale, minScale, minScale);
-
-            target.transform.Rotate(0f, -angleDelta, 0f);
-
-            Vector3 move = new Vector3(-deltaPosAvg.x, deltaPosAvg.y, -deltaPosAvg.z) * moveSpeed;
-            Vector3 dir = target.transform.InverseTransformDirection(move);
-            Vector3 finalMove = new Vector3(move.x * dir.x, move.y, move.z * dir.z);
-            target.transform.Translate(dir);
+            doScale();
+            doRotate();
+            doTranslate(deltaPosAvg);
         } else {
-            if (centerRen != null) centerRen.enabled = false;
+            if (useCenterObj) centerRen.enabled = false;
         }
 
         prevPosMain = steamCtlMain.transform.position;
@@ -83,6 +79,24 @@ public class SteamVR_SevenMove : MonoBehaviour {
         Vector3 relative = t1.InverseTransformPoint(v1);
         float angle = Mathf.Atan2(relative.x, relative.z) * Mathf.Rad2Deg;
         return angle;
+    }
+
+    public void doTranslate(Vector3 deltaPosAvg) {
+        Vector3 move = new Vector3(-deltaPosAvg.x, deltaPosAvg.y, -deltaPosAvg.z) * moveSpeed;
+        Vector3 dir = target.InverseTransformDirection(move);
+        Vector3 finalMove = new Vector3(move.x * dir.x, move.y, move.z * dir.z);
+        target.Translate(dir);
+    }
+
+    public void doRotate() {
+        target.Rotate(0f, -angleDelta, 0f);
+    }
+
+    public void doScale() {
+        if (Mathf.Abs(delta) > Mathf.Abs(deltaThreshold * target.localScale.x)) {
+            target.localScale -= (Vector3.one * Time.deltaTime * Mathf.Sign(delta) * scaleDelta);
+            target.localScale = new Vector3(Mathf.Clamp(target.localScale.x, minScale, maxScale), Mathf.Clamp(target.localScale.y, minScale, maxScale), Mathf.Clamp(target.localScale.z, minScale, maxScale));
+        }
     }
 
 }
