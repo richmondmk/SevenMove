@@ -9,12 +9,24 @@ public class SteamVR_SevenMove : MonoBehaviour {
     public SteamVR_NewController steamCtlAlt;
     public Transform target;
     public GameObject centerObj;
-    public float minScale = 0.1f;
-    public float maxScale = 100f;
-    public float moveSpeed = 4f;
-    public enum TrackMode { AVG, MAIN, ALT};
-    public TrackMode trackMode = TrackMode.AVG;
 
+    [Header("Translate")]
+    public bool translateEnabled = true;
+    public float moveSpeed = 3f;
+
+    public enum RotMode { AVG, MAIN, ALT };
+    [Header("Rotate")]
+    public bool rotationEnabled = true;
+    public RotMode rotMode = RotMode.AVG;
+    public float rotSpeed = 1.1f;
+
+    [Header("Scale")]
+    public bool scaleEnabled = true;
+    public float minScale = 0.0001f;
+    public float maxScale = Mathf.Infinity;
+    public float scaleTriggerDist = 0.25f;
+    public float scaleSpeed = 0.9f;
+    
     private Renderer centerRen;
     private Vector3 prevPosMain = Vector3.zero;
     private Vector3 prevPosAlt = Vector3.zero;
@@ -28,8 +40,8 @@ public class SteamVR_SevenMove : MonoBehaviour {
     private float angleDelta = 0f;
 
     private float deltaThreshold = 0.01f;
-    private float scaleDelta = 5f;
     private bool useCenterObj = false;
+    private List<Vector3> scaleDeltaSamples = new List<Vector3>();
 
     private void Awake() {
         if (centerObj == null) return;
@@ -48,18 +60,18 @@ public class SteamVR_SevenMove : MonoBehaviour {
         deltaPosAvg = new Vector3(deltaPosAvg.x, -deltaPosAvg.y, deltaPosAvg.z);
 
         centerPos = (steamCtlMain.transform.position + steamCtlAlt.transform.position) / 2f;
-        if (useCenterObj) centerObj.transform.position = centerPos;
+        if (useCenterObj && dist <= scaleTriggerDist * target.localScale.x) centerObj.transform.position = centerPos;
 
-        if (trackMode == TrackMode.AVG) {
+        if (rotMode == RotMode.AVG) {
             angle = (getAngle(steamCtlMain.transform, centerPos) + getAngle(steamCtlAlt.transform, centerPos)) / 2f;
-        } else if (trackMode == TrackMode.MAIN) {
+        } else if (rotMode == RotMode.MAIN) {
             angle = getAngle(steamCtlMain.transform, centerPos);
-        } else if (trackMode == TrackMode.ALT) {
+        } else if (rotMode == RotMode.ALT) {
             angle = getAngle(steamCtlAlt.transform, centerPos);
         }
-        angleDelta = angle - prevAngle;
+        angleDelta = (angle - prevAngle) * rotSpeed;
 
-        if (steamCtlMain.gripped && steamCtlAlt.gripped) {
+        if (steamCtlAlt.triggerPressed) { //steamCtlMain.gripped && steamCtlAlt.gripped) {
             if (useCenterObj) centerRen.enabled = true;
 
             doScale();
@@ -75,27 +87,39 @@ public class SteamVR_SevenMove : MonoBehaviour {
         prevAngle = angle;
     }
 
-    public float getAngle(Transform t1, Vector3 v1) {
+    private float getAngle(Transform t1, Vector3 v1) {
         Vector3 relative = t1.InverseTransformPoint(v1);
         float angle = Mathf.Atan2(relative.x, relative.z) * Mathf.Rad2Deg;
         return angle;
     }
 
-    public void doTranslate(Vector3 deltaPosAvg) {
+    private void doTranslate(Vector3 deltaPosAvg) {
+        if (!translateEnabled) return;
+
         Vector3 move = new Vector3(-deltaPosAvg.x, deltaPosAvg.y, -deltaPosAvg.z) * moveSpeed;
         Vector3 dir = target.InverseTransformDirection(move);
-        Vector3 finalMove = new Vector3(move.x * dir.x, move.y, move.z * dir.z);
-        target.Translate(dir);
+
+        Vector3 finalMove = new Vector3(dir.x, dir.y, dir.z);
+        //if (dist > scaleTriggerDist * target.localScale.x) finalMove.y *= 0.1f; // reduce y movement while scaling
+        target.Translate(finalMove);
+
     }
 
-    public void doRotate() {
-        target.Rotate(0f, -angleDelta, 0f);
+    private void doRotate() {
+        if (!rotationEnabled) return;// || dist > scaleTriggerDist * target.localScale.x) return; // don't rotate while scaling
+
+        target.rotation = Quaternion.RotateTowards(target.rotation, Quaternion.Euler(target.localEulerAngles.x, target.localEulerAngles.y - angleDelta, target.localEulerAngles.z), 1f);
+        //target.Rotate(0f, -angleDelta, 0f);
     }
 
-    public void doScale() {
+    private void doScale() {
+        if (!scaleEnabled) return;// || dist <= scaleTriggerDist * target.localScale.x) return;
+
         if (Mathf.Abs(delta) > Mathf.Abs(deltaThreshold * target.localScale.x)) {
-            target.localScale -= (Vector3.one * Time.deltaTime * Mathf.Sign(delta) * scaleDelta);
-            target.localScale = new Vector3(Mathf.Clamp(target.localScale.x, minScale, maxScale), Mathf.Clamp(target.localScale.y, minScale, maxScale), Mathf.Clamp(target.localScale.z, minScale, maxScale));
+            Vector3 scaleDelta = Vector3.one * Mathf.Sign(delta); 
+            Vector3 newScale = target.localScale - scaleDelta;
+            newScale = new Vector3(Mathf.Clamp(newScale.x, minScale, maxScale), Mathf.Clamp(newScale.y, minScale, maxScale), Mathf.Clamp(newScale.z, minScale, maxScale));
+            target.localScale = Vector3.Lerp(target.localScale, newScale, scaleSpeed / 100f);
         }
     }
 
