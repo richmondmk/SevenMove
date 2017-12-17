@@ -12,20 +12,20 @@ public class SteamVR_SevenMove : MonoBehaviour {
 
     [Header("Translate")]
     public bool translateEnabled = true;
-    public float moveSpeed = 3f;
+    public float moveSpeed = 4f;
 
     public enum RotMode { AVG, MAIN, ALT };
     [Header("Rotate")]
     public bool rotationEnabled = true;
     public RotMode rotMode = RotMode.AVG;
-    public float rotSpeed = 1.1f;
+    public float rotSpeed = 0.8f;
 
     [Header("Scale")]
     public bool scaleEnabled = true;
     public float minScale = 0.0001f;
     public float maxScale = Mathf.Infinity;
-    public float scaleTriggerDist = 0.25f;
-    public float scaleSpeed = 0.9f;
+    public float scaleTriggerDist = 0.333f;
+    public float scaleSpeed = 0.75f;
     
     private Renderer centerRen;
     private Vector3 prevPosMain = Vector3.zero;
@@ -71,7 +71,8 @@ public class SteamVR_SevenMove : MonoBehaviour {
         }
         angleDelta = (angle - prevAngle) * rotSpeed;
 
-        if (steamCtlAlt.triggerPressed) { //steamCtlMain.gripped && steamCtlAlt.gripped) {
+        if (steamCtlMain.gripped && steamCtlAlt.gripped) {
+        //if (steamCtlAlt.triggerPressed) {
             if (useCenterObj) centerRen.enabled = true;
 
             doScale();
